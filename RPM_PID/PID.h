@@ -1,17 +1,17 @@
 #pragma once
 #include <Arduino.h>
-#include <math.h>
-
 class PID {
 private:
-    static constexpr float max_pwm = 200.0f;
+    static constexpr float MAX_PWM = 1000.0f;
     float kp, ki, kd;
-    float integral, previousError;
-    bool first = true;  
+    float integral;
+    float previousError;
+    bool first;
+
 public:
-    PID() : kp(0.0f), ki(0.0f), kd(0.0f),integral(0.0f), previousError(0.0f) {}
+    PID(): kp(0.0f), ki(0.0f), kd(0.0f),integral(0.0f), previousError(0.0f),first(true) {}
     void setTunings(float kp_, float ki_, float kd_) {
-        kp = kp_; 
+        kp = kp_;
         ki = ki_;
         kd = kd_;
     }
@@ -21,21 +21,22 @@ public:
         first = true;
     }
     float compute(float targetRPM, float measuredRPM, float dt) {
+        if (targetRPM <= 0.0f) {
+            reset();
+            return 0.0f;
+        }
         float error = targetRPM - measuredRPM;
         float P = kp * error;
-        if (ki > 0.0f) {
-            float lim = max_pwm / ki;
-            integral = constrain(integral + error * dt, -max_pwm, max_pwm);
-        } 
-        else {
-            integral = 0.0f;
-        }
-        float I = ki * integral;
-        float derivative = first ? 0.0f : (error - previousError) / dt;
-        first = false;
+        float derivative =first ? 0.0f : (error - previousError) / dt;
         float D = kd * derivative;
-        float output = constrain((P + I + D), -max_pwm, max_pwm);
+        if (ki > 0.0f) {
+            integral = constrain(integral + error * dt,-MAX_PWM,MAX_PWM);
+        }
+        else integral = 0.0f;
+        float output = P + ki * integral + D;
+        output = constrain(output, 0.0f, MAX_PWM);
         previousError = error;
+        first = false;
         return output;
     }
 };

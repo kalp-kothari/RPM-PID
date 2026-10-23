@@ -1,29 +1,27 @@
+
 #pragma once
 #include <Arduino.h>
-#define MAX_PWM 200
 
-class MotorDriver{
-    private:
-      int dir;
-      int pwm;
-    public:
-      MotorDriver(int _dir , int _pwm):dir(_dir),pwm(_pwm){}
-    void stopmotor(){
+class MotorDriver {
+private:
+    int pwm;
+    int dir;
+    static constexpr int MAX_COMMAND = 1000;
+public:
+    MotorDriver(int pwmPin, int dirPin): pwm(pwmPin), dir(dirPin) {}
+    void begin() {
+        pinMode(pwm, OUTPUT);
+        pinMode(dir, OUTPUT);
+        digitalWrite(dir, HIGH);
         analogWrite(pwm, 0);
     }
-    void begin(){
-        pinMode(dir, OUTPUT);
-        pinMode(pwm, OUTPUT);
-        stopmotor();
+    void stopmotor() {
+        analogWrite(pwm, 0);
     }
-    void setSpeed(int speed){
-      if(speed>0.0f){
+    void setPWM(int command) {
+        command = constrain(command, 0, MAX_COMMAND);
         digitalWrite(dir, HIGH);
-        analogWrite(pwm, map(speed,0,MAX_PWM,0,200));
-      }
-      else{
-        digitalWrite(dir, LOW);
-        analogWrite(pwm, map(speed,0,MAX_PWM,0,200));
-      }
+        int duty = command * 255L / MAX_COMMAND;        
+        analogWrite(pwm, duty);
     }
 };

@@ -1,32 +1,38 @@
-#pragma once 
+#pragma once
 #include <Arduino.h>
-#include<Encoder.h>
-
-class EncoderRPM{
-  private:
-    long time;
-    Encoder enc;
+#include "encoder.h"
+class EncoderRPM {
+private:
+    encoder enc;
     long CPR;
+    long prev_pos;
+    unsigned long prev_time;
     float rpm;
-    long encoder_ticks;
-  public:
-    EncoderRPM(int pinA, int pinB, long cpr):enc(pinA, pinB),CPR(cpr),time(0),encoder_ticks(0),rpm(0.0){}
-    void begin(){
-      enc.write(0);
-      time=micros();
-      encoder_ticks=enc.read();
+public:
+    EncoderRPM(int pinA, int pinB, long cpr): enc(pinA, pinB),CPR(cpr),prev_pos(0),prev_time(0),rpm(0.0f) {}
+    void begin() {
+        enc.Begin();
+        prev_pos = enc.getPosition();
+        prev_time = micros();
+        rpm = 0.0f;
     }
-    void update(){
-      long curr_time=micros();
-      long curr_ticks=enc.read();
-      long elapsed=curr_time-time;
-      float dt=elapsed / 1000000.0;
-      long delEnc=curr_ticks-encoder_ticks;
-      rpm=((float)delEnc / (float)CPR)* (60.0 / dt);
-      time=curr_time;
-      encoder_ticks=curr_ticks;
+    void update() {
+        unsigned long curr_time = micros();
+        long curr_pos = enc.getPosition();
+        unsigned long elapsed = curr_time - prev_time;
+        float dt = elapsed / 1000000.0f;
+        long deltaPosition = curr_pos - prev_pos;
+        rpm = (deltaPosition * 60.0f) /(CPR * dt);
+        prev_pos = curr_pos;
+        prev_time = curr_time;
     }
-    float getRpm(){
-      return rpm;
+    float getRpm() const {
+        return rpm;
+    }
+    void reset() {
+        enc.resetPosition();
+        prev_pos = 0;
+        prev_time = micros();
+        rpm = 0.0f;
     }
 };
